@@ -32,6 +32,12 @@ if (requireToken && authToken) {
 
 app.use(routes);
 
+// Error handler — always return JSON
+app.use((err, req, res, next) => {
+  console.error('[config-service] Error:', err.message);
+  res.status(500).json({ error: err.message || 'Internal server error' });
+});
+
 async function start() {
   const db = initDb(dbFile);
   await migrate(db);
