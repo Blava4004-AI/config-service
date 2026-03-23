@@ -166,7 +166,7 @@ export class ConfigClient extends EventEmitter {
         continue;
       }
 
-      const kvMatch = trimmed.match(/^(\w[\w.-]*)s*=\s*(.+)$/);
+      const kvMatch = trimmed.match(/^(\w[\w.-]*)\s*=\s*(.+)$/);
       if (kvMatch) {
         const key = section ? `${section}.${kvMatch[1].trim()}` : kvMatch[1].trim();
         let val = kvMatch[2].trim();
