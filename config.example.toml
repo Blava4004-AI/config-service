@@ -1,0 +1,21 @@
+# Homelab Config Service
+# Copy to config.toml
+
+[api]
+port = 5195
+
+[api.ssl]
+key_path = ""
+cert_path = ""
+
+[api.auth]
+# Set to require a bearer token for API access
+require_token = false
+token = ""
+
+[database]
+driver = "better-sqlite3"
+filename = "./data/config.db"
+
+[frontend]
+api_base_url = "http://localhost:5195"

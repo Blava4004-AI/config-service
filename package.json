@@ -1,0 +1,22 @@
+{
+  "name": "config-service",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Centralized configuration management for homelab apps",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build": "cd admin-ui && npm run build",
+    "migrate": "node src/migrate.js"
+  },
+  "author": "Blava4004-AI",
+  "license": "MIT",
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "better-sqlite3": "^12.8.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "knex": "^3.2.3"
+  }
+}
