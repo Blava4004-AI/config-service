@@ -83,14 +83,26 @@ router.delete('/api/apps/:app', async (req, res) => {
 });
 
 // GET /api/config/:app
+// Resolution: app-specific values override global values
 router.get('/api/config/:app', async (req, res) => {
   const db = getDb();
   const { app } = req.params;
-  const rows = await db('configs').where({ app });
+  
+  // Load global config first (base layer)
+  const globalRows = await db('configs').where({ app: '__global__' });
   const config = {};
-  for (const row of rows) {
+  for (const row of globalRows) {
     config[row.key] = deserializeValue(row.value, row.value_type);
   }
+  
+  // Layer app-specific config on top (overrides globals)
+  const appRows = await db('configs').where({ app });
+  for (const row of appRows) {
+    config[row.key] = deserializeValue(row.value, row.value_type);
+  }
+  
+  // Update last_seen on every config poll so the dashboard shows accurate status
+  await db('app_registry').where({ app }).update({ last_seen: new Date().toISOString() }).catch(() => {});
   res.json(config);
 });
 

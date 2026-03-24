@@ -67,6 +67,44 @@ async function selfRegister(db) {
       await db('app_registry').where({ app: 'config-service' }).update({ last_seen: new Date().toISOString() });
       console.log('[config-service] Updated last_seen in registry');
     }
+
+    // Seed auth permission config keys in __global__
+    const authPermKeys = [
+      { key: 'auth.config-service.min_permission', value: JSON.stringify('admin'), value_type: 'string', description: 'Minimum permission to access Config Service' },
+      { key: 'auth.auth-service.min_permission', value: JSON.stringify('admin'), value_type: 'string', description: 'Minimum permission to access Auth Service' },
+      { key: 'auth.task-tracker.min_permission', value: JSON.stringify('read'), value_type: 'string', description: 'Minimum permission to access Task Tracker' },
+      { key: 'auth.__default__.min_permission', value: JSON.stringify('read'), value_type: 'string', description: 'Default minimum permission for unlisted apps' },
+    ];
+    for (const k of authPermKeys) {
+      const exists = await db('configs').where({ app: '__global__', key: k.key }).first();
+      if (!exists) {
+        await db('configs').insert({ app: '__global__', ...k, updated_by: 'self-register', updated_at: new Date().toISOString() });
+      }
+    }
+
+    // Register __global__ pseudo-app with shared config
+    const globalExists = await db('app_registry').where({ app: '__global__' }).first();
+    if (!globalExists) {
+      await db('app_registry').insert({
+        app: '__global__',
+        display_name: 'Global (Shared)',
+        version: '-',
+        last_seen: new Date().toISOString(),
+        base_url: '-'
+      });
+      const globalKeys = [
+        { key: 'ssl.key_path', value: JSON.stringify('/home/johnathan/certs/aiserver.key'), value_type: 'string', description: 'SSL private key path (shared by all apps)' },
+        { key: 'ssl.cert_path', value: JSON.stringify('/home/johnathan/certs/aiserver.crt'), value_type: 'string', description: 'SSL certificate path (shared by all apps)' },
+        { key: 'tailscale.hostname', value: JSON.stringify('aiserver.weasel-armadillo.ts.net'), value_type: 'string', description: 'Tailscale MagicDNS hostname' },
+        { key: 'gateway.url', value: JSON.stringify('http://127.0.0.1:18789/v1/chat/completions'), value_type: 'string', description: 'OpenClaw Gateway URL' },
+        { key: 'gateway.token', value: JSON.stringify('4f7220ba866825cda16fdf104c0f8fe9af5b892feb6e2622'), value_type: 'string', description: 'OpenClaw Gateway token', is_secret: 1 },
+      ];
+      for (const k of globalKeys) {
+        const exists = await db('configs').where({ app: '__global__', key: k.key }).first();
+        if (!exists) await db('configs').insert({ app: '__global__', ...k, updated_by: 'self-register', updated_at: new Date().toISOString() });
+      }
+      console.log('[config-service] Global shared config registered');
+    }
   } catch (e) {
     console.error('[config-service] Self-registration failed:', e.message);
   }
