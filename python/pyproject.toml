@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "homelab-config"
+version = "1.0.0"
+description = "Python client for the Homelab Config Service"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+    "httpx>=0.24",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "respx"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["homelab_config*"]
