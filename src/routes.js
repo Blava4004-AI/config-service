@@ -1,8 +1,20 @@
 import { Router } from 'express';
 import { getDb } from './db.js';
+import { createAuthGuard } from './middleware/authGuard.js';
+import { loadConfig } from './config.js';
 
 const router = Router();
 const startTime = Date.now();
+
+// Auth guard — config service uses its own flat config for auth.enabled
+const { flat: configFlat } = loadConfig();
+const auth = createAuthGuard({
+  appName: 'config-service',
+  getConfig: (key, defaultVal) => {
+    const val = configFlat[key];
+    return val !== undefined ? val : defaultVal;
+  }
+});
 
 function detectType(value) {
   if (typeof value === 'boolean') return 'boolean';
@@ -53,7 +65,7 @@ router.get('/health', async (req, res) => {
 });
 
 // GET /api/apps
-router.get('/api/apps', async (req, res) => {
+router.get('/api/apps', auth.adminOnly(), async (req, res) => {
   const db = getDb();
   const apps = await db('app_registry').select('*').orderBy('app');
   const configCounts = await db('configs')
@@ -70,7 +82,7 @@ router.get('/api/apps', async (req, res) => {
 });
 
 // DELETE /api/apps/:app
-router.delete('/api/apps/:app', async (req, res) => {
+router.delete('/api/apps/:app', auth.adminOnly(), async (req, res) => {
   const db = getDb();
   const { app } = req.params;
   const existing = await db('app_registry').where({ app }).first();
@@ -84,7 +96,7 @@ router.delete('/api/apps/:app', async (req, res) => {
 
 // GET /api/config/:app
 // Resolution: app-specific values override global values
-router.get('/api/config/:app', async (req, res) => {
+router.get('/api/config/:app', auth.readOnly(), async (req, res) => {
   const db = getDb();
   const { app } = req.params;
   
@@ -107,7 +119,7 @@ router.get('/api/config/:app', async (req, res) => {
 });
 
 // PUT /api/config/:app (self-register)
-router.put('/api/config/:app', async (req, res) => {
+router.put('/api/config/:app', auth.readWrite(), async (req, res) => {
   const db = getDb();
   const { app } = req.params;
   const { config = {}, meta = {} } = req.body;
@@ -163,7 +175,7 @@ router.put('/api/config/:app', async (req, res) => {
 });
 
 // PATCH /api/config/:app/:key
-router.patch('/api/config/:app/:key', async (req, res) => {
+router.patch('/api/config/:app/:key', auth.adminOnly(), async (req, res) => {
   const db = getDb();
   const { app, key } = req.params;
   const { value, is_secret, description } = req.body;
@@ -202,7 +214,7 @@ router.patch('/api/config/:app/:key', async (req, res) => {
 });
 
 // DELETE /api/config/:app/:key
-router.delete('/api/config/:app/:key', async (req, res) => {
+router.delete('/api/config/:app/:key', auth.adminOnly(), async (req, res) => {
   const db = getDb();
   const { app, key } = req.params;
   const ip = getIp(req);
@@ -216,7 +228,7 @@ router.delete('/api/config/:app/:key', async (req, res) => {
 });
 
 // GET /api/audit
-router.get('/api/audit', async (req, res) => {
+router.get('/api/audit', auth.adminOnly(), async (req, res) => {
   const db = getDb();
   const { app, limit = 50 } = req.query;
   let query = db('audit_log').orderBy('created_at', 'desc').limit(parseInt(limit));
@@ -226,7 +238,7 @@ router.get('/api/audit', async (req, res) => {
 });
 
 // GET /api/config-details/:app (for admin UI - includes metadata)
-router.get('/api/config-details/:app', async (req, res) => {
+router.get('/api/config-details/:app', auth.adminOnly(), async (req, res) => {
   const db = getDb();
   const { app } = req.params;
   const rows = await db('configs').where({ app }).orderBy('key');

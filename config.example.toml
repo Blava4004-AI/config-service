@@ -13,6 +13,12 @@ cert_path = ""
 require_token = false
 token = ""
 
+[auth]
+# Set to true when running behind Mosaic with the Auth Service
+# Set to false for standalone mode (no authentication)
+enabled = false
+min_permission = "admin"
+
 [database]
 driver = "better-sqlite3"
 filename = "./data/config.db"
